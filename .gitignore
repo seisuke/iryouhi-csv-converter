@@ -1,0 +1,9 @@
+# Zig
+.zig-cache/
+zig-out/
+
+# Build output
+/dist/
+
+# OS
+.DS_Store
