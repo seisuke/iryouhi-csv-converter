@@ -1,39 +1,14 @@
 <!doctype html>
 <html lang="ja">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>医療費CSVコンバータ</title>
-    <link rel="icon" href="favicon.ico" />
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>医療費CSV変換ツール</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
   </head>
-  <body>
-    <main class="app">
-      <header class="hero">
-        <p class="eyebrow">Browser-only CSV Converter</p>
-        <h1>医療費CSVコンバータ</h1>
-        <p class="lead">マイナポータルの医療費CSVを、国税庁フォームへ貼り付け可能なCSVに変換します。</p>
-        <p class="note">ファイルはアップロードされず、変換はこのブラウザ内で完結します。</p>
-      </header>
-
-      <section class="card">
-        <div class="control">
-          <label class="label" for="csvInput">マイナポータルCSV</label>
-          <input id="csvInput" type="file" accept=".csv" />
-        </div>
-        <button id="convertBtn" class="primary" disabled>変換する</button>
-        <div class="status" id="status">ファイルを選択してください。</div>
-        <a id="downloadLink" class="download" download="iryouhi_converted.csv" hidden>変換結果をダウンロード</a>
-      </section>
-
-      <section class="card outline">
-        <h2>出力仕様</h2>
-        <ul>
-          <li>支払年月日: <code>MM/01/YYYY</code></li>
-        </ul>
-      </section>
-    </main>
-
-    <script src="app.js"></script>
+  <body class="min-h-screen bg-slate-50 text-slate-900">
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

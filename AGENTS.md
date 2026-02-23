@@ -18,3 +18,10 @@
 - `診療区分` に `調剤` / `薬` / `医薬品` を含む → `医薬品購入`
 - `診療区分` に `介護` を含む → `介護保険サービス`
 - それ以外 → `診療・治療`
+
+## ビルド/デプロイ
+- Zig: `0.15.2`
+- `zig build -Doptimize=ReleaseSmall` で `vite build` まで実行し、`dist/` を生成。
+- ローカル確認は `zig build serve` を使い、`bun --bun vite preview --host` で配信する。
+- `file://` ではWASMが読み込めないため不可。
+- GitHub Actions で `gh-pages` ブランチにデプロイ（Bunでbuild）。

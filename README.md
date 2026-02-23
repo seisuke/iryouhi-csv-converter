@@ -4,7 +4,7 @@
 
 ## Requirements
 - Zig `0.15.2`
-- Python 3（ローカルHTTPサーバー用）
+- Bun（Vite/Litのビルドとプレビュー用）
 
 ## Build
 ```
@@ -18,7 +18,7 @@ zig build -Doptimize=ReleaseSmall
 zig build serve
 ```
 
-ブラウザで `http://localhost:8080` を開いてください。
+表示されたURLをブラウザで開いてください。
 
 ## Deploy
 GitHub Actions で `gh-pages` ブランチにデプロイされます。
