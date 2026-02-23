@@ -42,7 +42,7 @@ export class DropZone extends LitElement {
   }
 
   private async initWasm() {
-    const resp = await fetch('/iryouhi.wasm');
+    const resp = await fetch(`${import.meta.env.BASE_URL}iryouhi.wasm`);
     const bytes = await resp.arrayBuffer();
     const { instance } = await WebAssembly.instantiate(bytes, {});
     this.wasm = instance.exports;
