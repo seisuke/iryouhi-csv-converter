@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   root: '.',
   publicDir: 'public',
-  base: '/iryouhi-csv-converter/',
+  base: './',
   build: {
     outDir: '../dist',
     emptyOutDir: true,

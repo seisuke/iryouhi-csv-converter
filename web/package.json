@@ -3,11 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "ssg": "bun run ssg/build.ts",
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && bun run ssg",
     "preview": "vite preview --host"
   },
   "dependencies": {
+    "@lit-labs/ssr": "^3.3.1",
     "lit": "^3.1.2"
   },
   "devDependencies": {

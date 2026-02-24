@@ -35,7 +35,7 @@ pub fn build(b: *std.Build) void {
     const dist = b.addSystemCommand(&.{
         "sh",
         "-c",
-        "cd web && bun install && bun --bun vite build && cp ../zig-out/bin/iryouhi.wasm ../dist/iryouhi.wasm",
+        "cd web && bun install && bun run build && cp ../zig-out/bin/iryouhi.wasm ../dist/iryouhi.wasm",
     });
     dist.step.dependOn(&exe.step);
 
@@ -46,7 +46,7 @@ pub fn build(b: *std.Build) void {
     const serve_cmd = b.addSystemCommand(&.{
         "sh",
         "-c",
-        "cd web && bun --bun vite preview --host",
+        "cd web && bun run preview",
     });
     serve_cmd.step.dependOn(install_step);
     serve.dependOn(&serve_cmd.step);
