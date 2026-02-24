@@ -5,3 +5,32 @@
 body {
   margin: 0;
 }
+
+.btn-primary {
+  background-color: #4338ca;
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: #3730a3;
+}
+
+.btn-disabled {
+  background-color: #cbd5e1;
+  color: #475569;
+}
+
+.btn-download-active {
+  background-color: #059669;
+  color: #ffffff;
+  border: 1px solid #059669;
+}
+
+.btn-download-active:hover {
+  background-color: #047857;
+}
+
+.btn-download-disabled {
+  background-color: #bbf7d0;
+  color: #14532d;
+}

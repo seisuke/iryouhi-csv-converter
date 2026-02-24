@@ -71,13 +71,13 @@ export function renderApp(view: AppViewModel, actions: AppActions = {}): Templat
                   <p class="text-sm font-medium text-slate-600">CSVファイルをドラッグ&ドロップ</p>
                   ${actions.onInputChange
                     ? html`
-                        <label class="mt-4 inline-flex items-center justify-center rounded-lg bg-indigo-500 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-600">
+                        <label class="mt-4 inline-flex items-center justify-center rounded-lg bg-indigo-700 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-800">
                           ファイルを選択
                           <input class="hidden" type="file" accept=".csv" @change=${actions.onInputChange} />
                         </label>
                       `
                     : html`
-                        <div class="mt-4 inline-flex items-center justify-center rounded-lg bg-indigo-500 px-4 py-2 text-xs font-semibold text-white shadow-sm opacity-90">
+                        <div class="mt-4 inline-flex items-center justify-center rounded-lg bg-indigo-700 px-4 py-2 text-xs font-semibold text-white shadow-sm">
                           ファイルを選択
                         </div>
                       `}
@@ -91,7 +91,11 @@ export function renderApp(view: AppViewModel, actions: AppActions = {}): Templat
             ${actions.onConvert
               ? html`
                   <button
-                    class="w-full rounded-lg bg-indigo-500 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+                    class=${`w-full cursor-default rounded-lg px-4 py-3 text-sm font-semibold ${
+                      !view.selectedFileName || view.isConverting
+                        ? 'btn-disabled'
+                        : 'btn-primary'
+                    }`}
                     ?disabled=${!view.selectedFileName || view.isConverting}
                     @click=${actions.onConvert}
                   >
@@ -99,7 +103,7 @@ export function renderApp(view: AppViewModel, actions: AppActions = {}): Templat
                   </button>
                 `
               : html`
-                  <div class="w-full rounded-lg bg-indigo-500 px-4 py-3 text-center text-sm font-semibold text-white opacity-40">
+                  <div class="btn-disabled w-full rounded-lg px-4 py-3 text-center text-sm font-semibold">
                     変換する
                   </div>
                 `}
@@ -113,8 +117,7 @@ export function renderApp(view: AppViewModel, actions: AppActions = {}): Templat
             ${view.downloadUrl
               ? html`
                   <a
-                    class="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-white shadow-sm ring-1 ring-emerald-500 hover:bg-emerald-600"
-                    style="background-color:#10b981;color:#ffffff;"
+                    class="btn-download-active flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold shadow-sm"
                     href=${view.downloadUrl}
                     download="iryouhi_converted.csv"
                   >
@@ -128,8 +131,7 @@ export function renderApp(view: AppViewModel, actions: AppActions = {}): Templat
                 `
               : html`
                   <div
-                    class="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-white"
-                    style="background-color:#10b981;opacity:0.5;"
+                    class="btn-download-disabled flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold"
                   >
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                       <path d="M12 3v12" stroke-linecap="round" stroke-linejoin="round" />
@@ -151,4 +153,3 @@ export function renderApp(view: AppViewModel, actions: AppActions = {}): Templat
     </div>
   `;
 }
-

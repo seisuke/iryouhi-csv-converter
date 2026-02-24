@@ -1,3 +1,4 @@
+import './style.css';
 import './drop-zone';
 
 const app = document.querySelector<HTMLDivElement>('#app');
