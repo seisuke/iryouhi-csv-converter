@@ -1,9 +1,30 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 var last_output_len_value: usize = 0;
 
 const Allocator = std.mem.Allocator;
-const allocator = std.heap.wasm_allocator;
+const allocator = if (builtin.target.cpu.arch == .wasm32) std.heap.wasm_allocator else std.heap.page_allocator;
+const YearSuffix = "年";
+const MonthSuffix = "月";
+const Applicable = "該当する";
+
+const Record = struct {
+    date_raw: ?[]const u8 = null,
+    category_raw: ?[]const u8 = null,
+    hospital: ?[]const u8 = null,
+    amount_raw: ?[]const u8 = null,
+};
+
+const CommaMode = enum {
+    with_comma,
+    without_comma,
+};
+
+const KeyValue = struct {
+    key: []const u8,
+    value: []const u8,
+};
 
 export fn alloc(len: usize) ?[*]u8 {
     const buf = allocator.alloc(u8, len) catch return null;
@@ -44,11 +65,33 @@ fn errorMessage(err: anyerror) []const u8 {
     };
 }
 
-const Record = struct {
-    date_raw: ?[]const u8 = null,
-    category_raw: ?[]const u8 = null,
-    hospital: ?[]const u8 = null,
-    amount_raw: ?[]const u8 = null,
+const Headers = struct {
+    const person_name = "氏名";
+    const date = "診療年月";
+    const category = "診療区分";
+    const hospital = "医療機関等名称";
+    const amount = "窓口相当負担額（円）";
+
+    const Key = enum {
+        person_name,
+        date,
+        category,
+        hospital,
+        amount,
+        unknown,
+    };
+
+    const map = std.StaticStringMap(Key).initComptime(.{
+        .{ person_name, .person_name },
+        .{ date, .date },
+        .{ category, .category },
+        .{ hospital, .hospital },
+        .{ amount, .amount },
+    });
+
+    fn parse(key: []const u8) Key {
+        return map.get(key) orelse .unknown;
+    }
 };
 
 fn convertInternal(input: []const u8) ![]u8 {
@@ -66,40 +109,35 @@ fn convertInternal(input: []const u8) ![]u8 {
             line = line[0 .. line.len - 1];
         }
 
-        const fields = try parseCsvLine(allocator, line);
-        defer freeFields(allocator, fields);
+        const kv = parseKeyValueLine(line) orelse continue;
+        const key = kv.key;
+        const value = kv.value;
 
-        if (fields.len != 2) continue;
+        switch (Headers.parse(key)) {
+            .person_name => {
+                person_name = value;
+            },
+            .date => {
+                record.date_raw = value;
+            },
+            .category => {
+                record.category_raw = value;
+            },
+            .hospital => {
+                record.hospital = value;
+            },
+            .amount => {
+                record.amount_raw = value;
 
-        const key = std.mem.trim(u8, fields[0], " \t\r\n");
-        const value = std.mem.trim(u8, fields[1], " \t\r\n");
-
-        if (std.mem.eql(u8, key, "氏名")) {
-            if (person_name) |p| allocator.free(p);
-            person_name = try allocator.dupe(u8, value);
-            continue;
-        }
-
-        if (std.mem.eql(u8, key, "診療年月")) {
-            record.date_raw = try allocator.dupe(u8, value);
-        } else if (std.mem.eql(u8, key, "診療区分")) {
-            record.category_raw = try allocator.dupe(u8, value);
-        } else if (std.mem.eql(u8, key, "医療機関等名称")) {
-            record.hospital = try allocator.dupe(u8, value);
-        } else if (std.mem.eql(u8, key, "窓口相当負担額（円）")) {
-            record.amount_raw = try allocator.dupe(u8, value);
-
-            if (record.date_raw != null and record.category_raw != null and record.hospital != null) {
-                try writeRecord(&output, person_name orelse "", &record);
-                any_record = true;
-            }
-            freeRecord(record);
-            record = Record{};
+                if (record.date_raw != null and record.category_raw != null and record.hospital != null) {
+                    try writeRecord(&output, person_name orelse "", &record);
+                    any_record = true;
+                }
+                record = Record{};
+            },
+            .unknown => {},
         }
     }
-
-    freeRecord(record);
-    if (person_name) |p| allocator.free(p);
 
     if (!any_record) return error.NoRecords;
 
@@ -112,106 +150,82 @@ fn writeRecord(out: *std.array_list.Managed(u8), person: []const u8, record: *co
     const is_drug = contains(category, "調剤") or contains(category, "薬") or contains(category, "医薬品");
     const is_care = contains(category, "介護");
 
-    const treatment = if (!is_drug and !is_care) "該当する" else "";
-    const drug = if (is_drug) "該当する" else "";
-    const care = if (is_care) "該当する" else "";
+    const treatment = if (!is_drug and !is_care) Applicable else "";
+    const drug = if (is_drug) Applicable else "";
+    const care = if (is_care) Applicable else "";
     const other = "";
+    var digits_buf: [128]u8 = undefined;
+    const formatted_digits = try formatDigits(record.amount_raw orelse "", &digits_buf);
+    var date_buf: [10]u8 = undefined;
+    const formatted_date = try formatPaymentDate(record.date_raw orelse "", &date_buf);
 
-    const amount_raw = record.amount_raw orelse "";
-    const amount = try digitsOnly(allocator, amount_raw);
-    defer allocator.free(amount);
-
-    const date_raw = record.date_raw orelse "";
-    const pay_date = try formatPaymentDate(allocator, date_raw);
-    defer allocator.free(pay_date);
-
-    try writeField(out, person);
-    try out.append(',');
-    try writeField(out, record.hospital orelse "");
-    try out.append(',');
-    try writeField(out, treatment);
-    try out.append(',');
-    try writeField(out, drug);
-    try out.append(',');
-    try writeField(out, care);
-    try out.append(',');
-    try writeField(out, other);
-    try out.append(',');
-    try writeField(out, amount);
-    try out.append(',');
-    try writeField(out, "");
-    try out.append(',');
-    try writeField(out, pay_date);
+    try writeField(out, person, .with_comma);
+    try writeField(out, record.hospital orelse "", .with_comma);
+    try writeField(out, treatment, .with_comma);
+    try writeField(out, drug, .with_comma);
+    try writeField(out, care, .with_comma);
+    try writeField(out, other, .with_comma);
+    try writeField(out, formatted_digits, .with_comma);
+    try writeField(out, "", .with_comma);
+    try writeField(out, formatted_date, .without_comma);
     try out.appendSlice("\r\n");
 }
 
-fn formatPaymentDate(gpa: Allocator, date_raw: []const u8) ![]u8 {
-    const year_mark = std.mem.indexOf(u8, date_raw, "年") orelse return error.InvalidDate;
-    const month_mark = std.mem.indexOf(u8, date_raw, "月") orelse return error.InvalidDate;
+fn formatPaymentDate(date_raw: []const u8, buffer: *[10]u8) ![]const u8 {
+    const year_mark = std.mem.indexOf(u8, date_raw, YearSuffix) orelse return error.InvalidDate;
+    const month_mark = std.mem.indexOf(u8, date_raw, MonthSuffix) orelse return error.InvalidDate;
     if (month_mark <= year_mark) return error.InvalidDate;
 
     const year_part = date_raw[0..year_mark];
-    const month_part = date_raw[(year_mark + "年".len)..month_mark];
+    const month_part = date_raw[(year_mark + YearSuffix.len)..month_mark];
 
     if (year_part.len != 4) return error.InvalidDate;
     if (month_part.len < 1 or month_part.len > 2) return error.InvalidDate;
-    if (date_raw.len != month_mark + "月".len) return error.InvalidDate;
+    if (date_raw.len != month_mark + MonthSuffix.len) return error.InvalidDate;
     if (!allDigits(year_part) or !allDigits(month_part)) return error.InvalidDate;
 
     const month_num = parseMonth(month_part) orelse return error.InvalidDate;
     if (month_num < 1 or month_num > 12) return error.InvalidDate;
 
-    var out = try gpa.alloc(u8, 10);
-    out[0] = @intCast('0' + (month_num / 10));
-    out[1] = @intCast('0' + (month_num % 10));
-    out[2] = '/';
-    out[3] = '0';
-    out[4] = '1';
-    out[5] = '/';
-    out[6] = year_part[0];
-    out[7] = year_part[1];
-    out[8] = year_part[2];
-    out[9] = year_part[3];
-    return out;
+    var tmp: [10]u8 = undefined;
+    const formatted = try std.fmt.bufPrint(&tmp, "{d:0>2}/01/{s}", .{ month_num, year_part });
+    if (formatted.len != buffer.len) return error.InvalidDate;
+    @memcpy(buffer[0..formatted.len], formatted);
+    return buffer[0..formatted.len];
 }
 
 fn allDigits(value: []const u8) bool {
     for (value) |c| {
-        if (c < '0' or c > '9') return false;
+        if (!std.ascii.isDigit(c)) return false;
     }
     return true;
 }
 
 fn parseMonth(value: []const u8) ?u8 {
-    if (value.len == 1) {
-        return value[0] - '0';
-    }
-    return (value[0] - '0') * 10 + (value[1] - '0');
+    return std.fmt.parseInt(u8, value, 10) catch null;
 }
 
-fn freeRecord(record: Record) void {
-    if (record.date_raw) |v| allocator.free(v);
-    if (record.category_raw) |v| allocator.free(v);
-    if (record.hospital) |v| allocator.free(v);
-    if (record.amount_raw) |v| allocator.free(v);
-}
-
-fn digitsOnly(gpa: Allocator, value: []const u8) ![]u8 {
-    var buf = std.array_list.Managed(u8).init(gpa);
+fn formatDigits(value: []const u8, buffer: []u8) ![]const u8 {
+    var idx: usize = 0;
     for (value) |c| {
-        if (c >= '0' and c <= '9') try buf.append(c);
+        if (std.ascii.isDigit(c)) {
+            if (idx >= buffer.len) return error.FormattedBufferTooSmall;
+            buffer[idx] = c;
+            idx += 1;
+        }
     }
-    return buf.toOwnedSlice();
+    return buffer[0..idx];
 }
 
 fn contains(hay: []const u8, needle: []const u8) bool {
     return std.mem.indexOf(u8, hay, needle) != null;
 }
 
-fn writeField(out: *std.array_list.Managed(u8), value: []const u8) !void {
+fn writeField(out: *std.array_list.Managed(u8), value: []const u8, comma_mode: CommaMode) !void {
     const needs_quotes = std.mem.indexOfAny(u8, value, ",\"\n\r") != null;
     if (!needs_quotes) {
         try out.appendSlice(value);
+        if (comma_mode == .with_comma) try out.append(',');
         return;
     }
 
@@ -225,60 +239,85 @@ fn writeField(out: *std.array_list.Managed(u8), value: []const u8) !void {
         }
     }
     try out.append('"');
+    if (comma_mode == .with_comma) try out.append(',');
 }
 
-fn parseCsvLine(gpa: Allocator, line: []const u8) ![]([]u8) {
-    var fields = std.array_list.Managed([]u8).init(gpa);
+fn parseKeyValueLine(line: []const u8) ?KeyValue {
+    const split = findFirstUnquotedComma(line) orelse return null;
+    const key_raw = line[0..split];
+    const value_raw = line[(split + 1)..];
+    if (findFirstUnquotedComma(value_raw) != null) return null;
 
+    const key = trimAndDequote(key_raw);
+    const value = trimAndDequote(value_raw);
+    return .{ .key = key, .value = value };
+}
+
+fn trimAndDequote(raw: []const u8) []const u8 {
+    const trimmed = std.mem.trim(u8, raw, " \t\r\n");
+    if (trimmed.len >= 2 and trimmed[0] == '"' and trimmed[trimmed.len - 1] == '"') {
+        return trimmed[1 .. trimmed.len - 1];
+    }
+    return trimmed;
+}
+
+fn findFirstUnquotedComma(s: []const u8) ?usize {
+    var in_quotes = false;
     var i: usize = 0;
-    while (i <= line.len) {
-        var field = std.array_list.Managed(u8).init(gpa);
-        var in_quotes = false;
-
-        if (i < line.len and line[i] == '"') {
-            in_quotes = true;
-            i += 1;
-        }
-
-        while (i < line.len) {
-            const c = line[i];
-            if (in_quotes) {
-                if (c == '"') {
-                    if (i + 1 < line.len and line[i + 1] == '"') {
-                        try field.append('"');
-                        i += 2;
-                        continue;
-                    }
-                    in_quotes = false;
-                    i += 1;
-                    continue;
-                }
-                try field.append(c);
+    while (i < s.len) : (i += 1) {
+        const c = s[i];
+        if (c == '"') {
+            if (in_quotes and i + 1 < s.len and s[i + 1] == '"') {
                 i += 1;
                 continue;
             }
-
-            if (c == ',') {
-                i += 1;
-                break;
-            }
-            try field.append(c);
-            i += 1;
+            in_quotes = !in_quotes;
+            continue;
         }
-
-        try fields.append(try field.toOwnedSlice());
-
-        if (i >= line.len) break;
-        if (i == line.len and line.len > 0 and line[line.len - 1] == ',') {
-            try fields.append(try gpa.alloc(u8, 0));
-            break;
-        }
+        if (c == ',' and !in_quotes) return i;
     }
-
-    return fields.toOwnedSlice();
+    return null;
 }
 
-fn freeFields(gpa: Allocator, fields: []([]u8)) void {
-    for (fields) |f| gpa.free(f);
-    gpa.free(fields);
+fn readFixture(gpa: Allocator, path: []const u8) ![]u8 {
+    return try std.fs.cwd().readFileAlloc(gpa, path, 10 * 1024 * 1024);
+}
+
+test "golden: convertInternal exact bytes" {
+    const testing = std.testing;
+    const gpa = testing.allocator;
+
+    const input = try readFixture(gpa, "testdata/iryouhi.csv");
+    defer gpa.free(input);
+
+    const expected = try readFixture(gpa, "testdata/iryouhi_converted.csv");
+    defer gpa.free(expected);
+
+    const actual = try convertInternal(input);
+    defer allocator.free(actual);
+
+    try testing.expectEqualStrings(expected, actual);
+}
+
+test "golden: export API exact bytes" {
+    const testing = std.testing;
+    const gpa = testing.allocator;
+
+    const input = try readFixture(gpa, "testdata/iryouhi.csv");
+    defer gpa.free(input);
+
+    const expected = try readFixture(gpa, "testdata/iryouhi_converted.csv");
+    defer gpa.free(expected);
+
+    const in_ptr = alloc(input.len) orelse return error.OutOfMemory;
+    @memcpy(in_ptr[0..input.len], input);
+
+    const out_ptr = convert(in_ptr, input.len) orelse return error.OutOfMemory;
+    const out_len = last_output_len();
+    const actual = out_ptr[0..out_len];
+
+    try testing.expectEqualStrings(expected, actual);
+
+    dealloc(in_ptr, input.len);
+    dealloc(out_ptr, out_len);
 }
