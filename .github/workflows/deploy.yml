@@ -3,6 +3,7 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,6 +13,9 @@ permissions:
 concurrency:
   group: "pages"
   cancel-in-progress: true
+
+env:
+  CLOUDFLARE_PAGES_PROJECT: iryouhi-csv-converter
 
 jobs:
   build:
@@ -36,7 +40,13 @@ jobs:
         with:
           path: dist
 
-  deploy:
+      - name: Upload dist artifact (Cloudflare)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+  deploy_github_pages:
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -46,3 +56,21 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+  deploy_cloudflare_pages:
+    needs: build
+    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ env.CLOUDFLARE_PAGES_PROJECT }}
