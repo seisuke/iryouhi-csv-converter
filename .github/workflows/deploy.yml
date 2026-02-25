@@ -81,6 +81,11 @@ jobs:
           name: dist
           path: dist
 
+      - name: Inject AdSense script for Cloudflare
+        if: ${{ steps.cf_secrets.outputs.enabled == 'true' }}
+        run: |
+          perl -0777 -i -pe 's|<head>\n|<head>\n    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8642536127330267" crossorigin="anonymous"></script>\n| unless /ca-pub-8642536127330267/s' dist/index.html
+
       - name: Deploy to Cloudflare Pages
         if: ${{ steps.cf_secrets.outputs.enabled == 'true' }}
         uses: cloudflare/wrangler-action@v3
