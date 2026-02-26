@@ -24,7 +24,7 @@ export function renderApp(view: AppViewModel, actions: AppActions = {}): Templat
   return html`
     <div class="min-h-screen bg-slate-200">
       <header class="border-b border-slate-200 bg-white">
-        <div class="mx-auto flex max-w-4xl items-center gap-3 px-6 py-5">
+        <div class="mx-auto flex max-w-4xl items-start gap-3 px-6 py-5">
           <div class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke-linecap="round" stroke-linejoin="round" />
@@ -33,8 +33,28 @@ export function renderApp(view: AppViewModel, actions: AppActions = {}): Templat
             </svg>
           </div>
           <div>
-            <h1 class="text-xl font-semibold tracking-tight">医療費CSV変換ツール</h1>
+            <h1 class="text-2xl font-semibold tracking-tight">医療費CSV変換ツール</h1>
             <p class="text-sm text-slate-500">${view.description}</p>
+            <div class="mt-3 flex flex-col items-start gap-y-1 text-xs text-slate-600">
+              <a
+                class="inline-flex items-center gap-1 underline decoration-slate-400 hover:text-slate-900"
+                href="https://x.com/seisuke"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img class="h-5 w-5" src="./icons/brands/x.svg" alt="" aria-hidden="true" />
+                <span>@seisuke</span>
+              </a>
+              <a
+                class="inline-flex items-center gap-1 underline decoration-slate-400 hover:text-slate-900"
+                href="https://github.com/seisuke/iryouhi-csv-converter"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img class="h-5 w-5" src="./icons/brands/github.svg" alt="" aria-hidden="true" />
+                <span>seisuke/iryouhi-csv-converter</span>
+              </a>
+            </div>
           </div>
         </div>
       </header>
@@ -147,7 +167,7 @@ export function renderApp(view: AppViewModel, actions: AppActions = {}): Templat
 
         <div class="mt-6 rounded-xl bg-slate-100 px-4 py-3 text-xs text-slate-500">
           <p>※ 支払年月日は MM/01/YYYY フォーマットで出力されます</p>
-          <p>※ ファイルはサーバーにはアップロードされません</p>
+          <p>※ CSVファイルはサーバーにはアップロードされません。ブラウザ上で変換されるため個人情報はどこにも共有されません</p>
         </div>
       </main>
     </div>
