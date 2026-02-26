@@ -105,6 +105,30 @@ export function renderApp(view: AppViewModel, actions: AppActions = {}): Templat
               `}
         </section>
 
+        <div class="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+          <p>
+            CSVデータ例が不足しているため変換方法がわからない部分があります。例として
+            <span class="mx-0.5 rounded bg-slate-200 px-1.5 py-0.5 font-mono text-[11px] text-slate-800">その他の公費の負担額</span>
+            や
+            <span class="mx-0.5 rounded bg-slate-200 px-1.5 py-0.5 font-mono text-[11px] text-slate-800">介護</span>
+            の費用周りなどです。
+          </p>
+          <p class="mt-1">
+            お手数ですが問題報告を
+            <a
+              class="font-medium text-blue-700 underline decoration-blue-400 underline-offset-2 hover:text-blue-800"
+              href="https://github.com/seisuke/iryouhi-csv-converter/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              こちら
+            </a>
+            にお願いします。その際は問題があるcsvデータの部分を
+            <span class="mx-0.5 rounded border border-red-300 bg-red-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-red-900">!!匿名に修正してから!!</span>
+            貼り付けてください。すぐ対応します。
+          </p>
+        </div>
+
         <section class="mt-6">
           <h2 class="mb-3 text-base font-semibold">2. 変換実行</h2>
           <div class="rounded-2xl border border-slate-200 bg-white px-6 py-6 shadow-sm">
